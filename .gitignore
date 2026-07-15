@@ -8,3 +8,6 @@ Thumbs.db
 
 # Build scratch when zipping themes
 **/source/*.peltontheme
+
+# Generated Pages output
+_site/

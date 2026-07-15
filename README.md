@@ -10,6 +10,20 @@
 </p>
 
 <p align="center">
+  <b>🖼️ Browse the gallery → <a href="https://themes.pelton.app">themes.pelton.app</a></b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/TRC-Loop/pelton-themes/issues/new?template=submit_theme.yml">
+    <img src="https://img.shields.io/badge/%E2%9C%A8%20Submit%20a%20theme-2e3440?style=for-the-badge&labelColor=88c0d0&color=2e3440" height="42" alt="Submit a theme">
+  </a>
+  &nbsp;
+  <a href="https://github.com/TRC-Loop/pelton-themes/issues/new?template=suggest_theme.yml">
+    <img src="https://img.shields.io/badge/%F0%9F%92%A1%20Request%20a%20theme-eceff4?style=for-the-badge&labelColor=5e81ac&color=eceff4" height="42" alt="Request a theme">
+  </a>
+</p>
+
+<p align="center">
   <a href="https://github.com/TRC-Loop/pelton-themes/blob/main/CONTRIBUTING.md">
     <img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge" alt="PRs Welcome">
   </a>
@@ -18,9 +32,6 @@
   </a>
   <a href="https://arne.sh/discord">
     <img src="https://img.shields.io/badge/Discord-Join-7289DA?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
-  </a>
-  <a href="https://github.com/TRC-Loop/pelton-themes/issues/new/choose">
-    <img src="https://img.shields.io/badge/Submit_a-theme-88c0d0?style=for-the-badge" alt="Submit a theme">
   </a>
 </p>
 
@@ -43,6 +54,7 @@ repository collects them so you can find one, download it, and share your own.
 | | |
 | --- | --- |
 | 🌐 **Website** | <https://pelton.app> |
+| 🖼️ **Theme gallery** | <https://themes.pelton.app> |
 | 📖 **Documentation** | <https://docs.pelton.app> |
 | 🎨 **Theme docs** | <https://docs.pelton.app/themes/> · [format spec](https://docs.pelton.app/themes/format/) · [create a theme](https://docs.pelton.app/themes/create/) |
 | 💻 **Main app repo** | <https://github.com/TRC-Loop/Pelton> |
@@ -122,17 +134,6 @@ Then open a pull request. Full details are in
 > Themes must **bundle** their fonts and images. A remote `url()` or `@import`
 > can be used to track people, so CI rejects them — see the
 > [security model](https://docs.pelton.app/themes/#security-model-in-short).
-
-## <img src="https://api.iconify.design/tabler/tools.svg?color=888888" width="24" align="center"> Repository tooling
-
-| Path | What it does |
-| --- | --- |
-| [`scripts/validate_theme.py`](scripts/validate_theme.py) | Validates every `.peltontheme` (manifest, tokens, CSS, size caps). |
-| [`scripts/render_readme.py`](scripts/render_readme.py) | Renders the manifest metadata header into each theme's README. |
-| [`.github/workflows/themes.yml`](.github/workflows/themes.yml) | Runs both on every push and pull request. |
-| [`themes/_TEMPLATE/`](themes/_TEMPLATE/) | Copyable starting point for a new theme. |
-
-Both scripts use the Python standard library only — no dependencies to install.
 
 ## <img src="https://api.iconify.design/tabler/scale.svg?color=888888" width="24" align="center"> Licensing
 

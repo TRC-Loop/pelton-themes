@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" font-family="system-ui, sans-serif">
+  <rect width="640" height="400" fill="#2e3440"/>
+  <rect x="0" y="0" width="200" height="400" fill="#292e39"/>
+  <rect x="220" y="28" width="392" height="52" rx="8" fill="#3b4252"/>
+  <rect x="220" y="100" width="392" height="52" rx="8" fill="#3b4252"/>
+  <rect x="220" y="172" width="392" height="52" rx="8" fill="#434c5e"/>
+  <rect x="220" y="244" width="392" height="52" rx="8" fill="#3b4252"/>
+  <rect x="24" y="28" width="152" height="14" rx="7" fill="#88c0d0"/>
+  <rect x="24" y="64" width="120" height="10" rx="5" fill="#9aa5b8"/>
+  <rect x="24" y="92" width="120" height="10" rx="5" fill="#9aa5b8"/>
+  <rect x="24" y="120" width="120" height="10" rx="5" fill="#9aa5b8"/>
+  <rect x="240" y="44" width="180" height="12" rx="6" fill="#eceff4"/>
+  <rect x="240" y="116" width="220" height="12" rx="6" fill="#eceff4"/>
+  <rect x="240" y="188" width="200" height="12" rx="6" fill="#eceff4"/>
+  <rect x="240" y="260" width="160" height="12" rx="6" fill="#eceff4"/>
+  <circle cx="588" cy="52" r="6" fill="#a3be8c"/>
+  <circle cx="588" cy="124" r="6" fill="#ebcb8b"/>
+  <circle cx="588" cy="196" r="6" fill="#88c0d0"/>
+  <text x="24" y="380" fill="#d8dee9" font-size="18" font-weight="600">Nordish</text>
+</svg>
