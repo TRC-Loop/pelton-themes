@@ -16,6 +16,7 @@ No third-party dependencies: standard library only.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sys
@@ -163,12 +164,22 @@ def collect_all(out: Path) -> list[dict]:
     return themes
 
 
+def asset_hash() -> str:
+    """Short content hash of the CSS + JS, for cache-busting on every deploy."""
+    h = hashlib.sha256()
+    h.update((WEB / "style.css").read_bytes())
+    h.update((WEB / "app.js").read_bytes())
+    return h.hexdigest()[:10]
+
+
 def render_html(themes: list[dict]) -> str:
     data = json.dumps(themes, ensure_ascii=False)
     count = len(themes)
     plural = "theme" if count == 1 else "themes"
-    return TEMPLATE.replace("__THEMES_JSON__", data).replace(
-        "__COUNT__", f"{count} {plural}"
+    return (
+        TEMPLATE.replace("__THEMES_JSON__", data)
+        .replace("__COUNT__", f"{count} {plural}")
+        .replace("__V__", asset_hash())
     )
 
 
@@ -202,7 +213,7 @@ TEMPLATE = """<!doctype html>
 <title>Pelton Themes</title>
 <meta name="description" content="Community theme gallery for Pelton, the privacy-first email client. Browse, preview and download .peltontheme files.">
 <link rel="icon" type="image/webp" href="./img/pelton-logo.webp">
-<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./style.css?v=__V__">
 </head>
 <body>
 
@@ -282,7 +293,7 @@ TEMPLATE = """<!doctype html>
 </div>
 
 <script>window.__THEMES__ = __THEMES_JSON__;</script>
-<script src="./app.js"></script>
+<script src="./app.js?v=__V__"></script>
 </body>
 </html>
 """
