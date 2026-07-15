@@ -31,6 +31,17 @@ THEMES_DIR = Path("themes")
 
 PREVIEW_EXTS = (".png", ".webp", ".jpg", ".jpeg", ".gif", ".avif", ".svg")
 
+# Tokens that are typography rather than colour.
+FONT_TOKENS = {"font-ui", "font-mono"}
+TYPE_TOKENS = {
+    "fz-meta", "fz-label", "fz-list", "fz-body", "fz-heading", "fz-title",
+    "fw-regular", "fw-medium", "fw-semibold", "fw-bold",
+}
+RADIUS_TOKENS = {"radius-control", "radius-card", "radius-none"}
+NON_COLOUR = FONT_TOKENS | TYPE_TOKENS | RADIUS_TOKENS
+
+REMOTE_MARKERS = ("@import", "url(http", "url( http", 'url("http', "url('http", "url(//", 'url("//', "url('//")
+
 
 def read_manifest(pack: Path) -> dict | None:
     try:
@@ -65,6 +76,44 @@ def extract_preview(pack: Path, manifest: dict, dest_dir: Path) -> str | None:
     return None
 
 
+def detect_capabilities(pack: Path, manifest: dict) -> dict:
+    """Work out what a theme actually alters, from its manifest and contents."""
+    token_names: set[str] = set()
+    css_blob = ""
+    tokens = manifest.get("tokens")
+    try:
+        with zipfile.ZipFile(pack) as zf:
+            names = zf.namelist()
+            if isinstance(tokens, dict):
+                token_names |= {k.lstrip("-") for k in tokens}
+            elif isinstance(tokens, list):
+                for entry in tokens:
+                    if entry in names:
+                        try:
+                            obj = json.loads(zf.read(entry))
+                            token_names |= {k.lstrip("-") for k in obj}
+                        except json.JSONDecodeError:
+                            pass
+            for entry in manifest.get("css") or []:
+                if entry in names:
+                    css_blob += zf.read(entry).decode("utf-8", "replace").lower()
+    except zipfile.BadZipFile:
+        pass
+
+    colours = bool(token_names - NON_COLOUR)
+    fonts = bool(token_names & (FONT_TOKENS | TYPE_TOKENS)) or "@font-face" in css_blob
+    icons = bool(manifest.get("icons"))
+    css = bool(manifest.get("css"))
+    external = any(m in css_blob for m in REMOTE_MARKERS)
+    return {
+        "colours": colours,
+        "fonts": fonts,
+        "icons": icons,
+        "css": css,
+        "external": external,
+    }
+
+
 def collect_theme(folder: Path, out: Path) -> dict | None:
     packs = sorted(folder.glob("*.peltontheme"))
     if not packs:
@@ -97,6 +146,7 @@ def collect_theme(folder: Path, out: Path) -> dict | None:
         "download": f"themes/{slug}/{pack.name}",
         "preview": f"themes/{slug}/{preview_name}" if preview_name else None,
         "folder": f"{FOLDER_BASE}/{slug}",
+        "caps": detect_capabilities(pack, manifest),
     }
 
 
@@ -173,7 +223,7 @@ TEMPLATE = """<!doctype html>
 <main class="wrap">
   <section class="hero">
     <h1>Pelton Themes</h1>
-    <p>The community gallery for <a href="https://pelton.app">Pelton</a>, the privacy-first email client. Browse, preview and download themes — then import them under Settings, Themes.</p>
+    <p class="tagline">Community themes for <a href="https://pelton.app">Pelton</a>. Preview, download, import.</p>
     <div class="cta">
       <a class="btn btn-primary" href="https://github.com/TRC-Loop/pelton-themes/issues/new?template=submit_theme.yml">Submit a theme</a>
       <a class="btn btn-ghost" href="https://github.com/TRC-Loop/pelton-themes/blob/main/CONTRIBUTING.md">How it works</a>
@@ -217,7 +267,7 @@ TEMPLATE = """<!doctype html>
     <p class="modal-theme" id="modal-theme"></p>
     <div class="warn">
       <span>&#9888;&#65039;</span>
-      <span><strong>Third-party content.</strong> Themes are community-submitted. We check every submission, but some things can slip through — a theme is code-adjacent, so treat it like anything you download from the internet. You install it at your own risk.</span>
+      <span><strong>Third-party content.</strong> Themes are community-submitted. We check every submission, but some things can slip through. A theme is code-adjacent, so treat it like anything you download from the internet. You install it at your own risk.</span>
     </div>
     <ul>
       <li>Pelton shows you the metadata and raw CSS before anything installs.</li>

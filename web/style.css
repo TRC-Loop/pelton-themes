@@ -1,4 +1,4 @@
-/* Pelton Themes gallery — styling copied from pelton.app (fonts, colours,
+/* Pelton Themes gallery. Styling copied from pelton.app (fonts, colours,
    radii, elements). Fully self-hosted: no external requests, GDPR friendly. */
 
 @font-face {
@@ -158,6 +158,7 @@ img { max-width: 100%; }
   margin: 0 0 14px;
 }
 .hero p { color: var(--text-secondary); max-width: 620px; margin: 0 auto 22px; font-size: 17px; }
+.hero .tagline { font-size: 14px; color: var(--text-tertiary); margin: 0 auto 26px; }
 .hero .cta { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
 .btn {
@@ -200,29 +201,81 @@ img { max-width: 100%; }
 }
 .card:hover { border-color: var(--border-default); transform: translateY(-2px); }
 .card .preview {
+  position: relative;
   aspect-ratio: 16 / 10;
   background: var(--surface-sunken);
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
 .card .preview img { width: 100%; height: 100%; object-fit: cover; }
-.card .preview .placeholder {
-  color: var(--text-tertiary); font-size: 13px; display: flex; flex-direction: column;
-  align-items: center; gap: 6px;
+.card .preview .placeholder { color: var(--text-tertiary); }
+.card .preview .placeholder svg { width: 40px; height: 40px; opacity: 0.5; }
+
+/* Overlaid tags on the preview image. */
+.version-tag, .base-tag {
+  position: absolute; bottom: 10px;
+  font-size: 11px; font-weight: var(--fw-semibold);
+  padding: 4px 9px; border-radius: 999px;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
-.card .body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.version-tag {
+  right: 10px;
+  background: color-mix(in srgb, var(--accent) 82%, transparent);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.base-tag { left: 10px; text-transform: capitalize; }
+.base-tag.base-dark { background: rgba(46, 52, 64, 0.82); color: #eceff4; }
+.base-tag.base-light { background: rgba(236, 239, 244, 0.85); color: #2e3440; }
+
+.card .body { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .card h3 { margin: 0; font-size: 17px; font-weight: var(--fw-semibold); }
+.made-for { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
 .card .desc { color: var(--text-secondary); font-size: 13px; margin: 0; flex: 1; }
-.card .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.badge {
-  font-size: 11px; padding: 3px 8px; border-radius: 999px;
-  background: var(--surface-sunken); color: var(--text-secondary);
-  border: 1px solid var(--border-subtle);
+
+/* by <pfp> Username */
+.author { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.author .by { color: var(--text-tertiary); }
+.author .username { color: var(--text-primary); font-weight: var(--fw-medium); }
+.avatar {
+  width: 20px; height: 20px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px; font-weight: var(--fw-semibold);
+  flex-shrink: 0;
 }
-.badge.base-dark { background: #2e3440; color: #eceff4; border-color: transparent; }
-.badge.base-light { background: #eceff4; color: #2e3440; border-color: var(--border-default); }
-.card .actions { display: flex; gap: 8px; margin-top: 12px; }
-.card .actions .btn { height: 34px; padding: 0 12px; font-size: 13px; flex: 1; justify-content: center; }
+
+/* Capability icons with hover tooltips. */
+.caps { display: flex; gap: 6px; flex-wrap: wrap; min-height: 26px; align-items: center; }
+.cap {
+  position: relative;
+  width: 26px; height: 26px; border-radius: var(--radius-control);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-sunken); color: var(--text-secondary);
+  border: 1px solid var(--border-subtle); cursor: help;
+}
+.cap svg { width: 16px; height: 16px; }
+.cap-warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, transparent); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+.cap[data-tip]:hover::after, .cap[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 220px;
+  background: var(--text-primary); color: var(--surface-raised);
+  font-size: 12px; line-height: 1.35; font-weight: var(--fw-medium);
+  padding: 7px 10px; border-radius: var(--radius-control);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); z-index: 5; pointer-events: none;
+}
+.cap[data-tip]:hover::before, .cap[data-tip]:focus-visible::before {
+  content: ""; position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--text-primary); z-index: 5;
+}
+
+.card .actions { display: flex; gap: 8px; margin-top: auto; padding-top: 6px; }
+.card .actions .btn { height: 42px; font-size: 14px; }
+.btn-download { flex: 2; }
+.btn-source { flex: 1; }
+.btn svg { width: 18px; height: 18px; }
 
 /* --- Pagination --------------------------------------------------------- */
 .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 36px 0 12px; flex-wrap: wrap; }
