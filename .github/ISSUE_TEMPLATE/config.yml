@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Pelton (main app) issues
+    url: https://github.com/TRC-Loop/Pelton/issues
+    about: Bugs or feature requests for the Pelton email client itself belong here, not in the themes repo.
+  - name: Theme format documentation
+    url: https://docs.pelton.app/themes/
+    about: How a .peltontheme file is built, the full token surface, CSS and icon rules.
+  - name: Community chat (Discord)
+    url: https://arne.sh/discord
+    about: Questions, help building a theme, or just showing off what you made.

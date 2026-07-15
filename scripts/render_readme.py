@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""Render the generated metadata header into every theme's README.
+
+Each ``themes/<name>/README.md`` gets a block of facts pulled straight from
+the theme's ``.peltontheme`` manifest (version, Pelton compatibility, author,
+license, and so on), followed by a ``---`` rule, followed by the author's own
+README text. The block is regenerated on every run; everything the author
+wrote below the marker is preserved untouched.
+
+Usage:
+    python3 scripts/render_readme.py            # rewrite every theme README
+    python3 scripts/render_readme.py --check    # fail if any README is stale
+    python3 scripts/render_readme.py themes/nordish
+
+No third-party dependencies: standard library only.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+START = "<!-- PELTON-META:START (generated from manifest.json by CI — do not edit inside this block) -->"
+END = "<!-- PELTON-META:END -->"
+
+
+def read_manifest(pack: Path) -> dict:
+    with zipfile.ZipFile(pack) as zf:
+        return json.loads(zf.read("manifest.json"))
+
+
+def compat_text(pel: dict) -> str:
+    lo, hi = pel.get("min"), pel.get("max")
+    if lo and hi:
+        return f"`{lo}` – `{hi}`"
+    if lo:
+        return f"`{lo}` or newer"
+    if hi:
+        return f"up to `{hi}`"
+    return "any version"
+
+
+def made_for_text(pel: dict) -> str:
+    lo = pel.get("min")
+    return f"Pelton `{lo}`" if lo else "unspecified"
+
+
+def row(label: str, value: str) -> str:
+    return f"| **{label}** | {value} |"
+
+
+def render_block(folder: Path, packs: list[Path]) -> str:
+    manifests = [(p, read_manifest(p)) for p in packs]
+    primary = manifests[0][1]
+    pel = primary.get("pelton", {}) or {}
+
+    name = primary.get("name", folder.name)
+    lines: list[str] = [
+        START,
+        "> [!NOTE]",
+        "> This section is generated automatically from the theme's "
+        "`.peltontheme` manifest. Do not edit it by hand — change the theme "
+        "and let CI re-render it.",
+        "",
+        f"# {name}",
+    ]
+    desc = primary.get("description")
+    if desc:
+        lines += ["", f"*{desc}*"]
+
+    lines += [
+        "",
+        "| Field | Value |",
+        "| --- | --- |",
+        row("Theme version", f"`{primary.get('version', '—')}`"),
+        row("Made for", made_for_text(pel)),
+        row("Compatibility", compat_text(pel)),
+        row("Base", f"`{primary.get('base', '—')}`"),
+        row("Author", primary.get("author", "—")),
+        row("License", f"`{primary.get('license', 'see LICENSE')}`"),
+        row("id", f"`{primary.get('id', folder.name)}`"),
+    ]
+    if primary.get("homepage"):
+        lines.append(row("Homepage", f"<{primary['homepage']}>"))
+    lines.append(row("Package", " ".join(f"`{p.name}`" for p in packs)))
+
+    # When a folder ships more than one theme, list each package explicitly.
+    if len(manifests) > 1:
+        lines += [
+            "",
+            f"> [!TIP]",
+            f"> This pack ships **{len(manifests)} themes**.",
+            "",
+            "| Package | Name | Version | Base | Made for |",
+            "| --- | --- | --- | --- | --- |",
+        ]
+        for pack, man in manifests:
+            mp = man.get("pelton", {}) or {}
+            lines.append(
+                f"| `{pack.name}` | {man.get('name', '—')} | "
+                f"`{man.get('version', '—')}` | `{man.get('base', '—')}` | "
+                f"{made_for_text(mp)} |"
+            )
+
+    lines += ["", END]
+    return "\n".join(lines)
+
+
+def split_author(existing: str) -> str:
+    """Return the author-written portion of an existing README."""
+    if END in existing:
+        after = existing.split(END, 1)[1]
+        # Drop a single leading rule + surrounding whitespace we added before.
+        after = after.lstrip("\n")
+        if after.startswith("---"):
+            after = after[3:].lstrip("\n")
+        return after
+    return existing
+
+
+def render_folder(folder: Path) -> tuple[str, str] | None:
+    """Return (path, new_contents) or None if there is nothing to render."""
+    packs = sorted(folder.glob("*.peltontheme"))
+    if not packs:
+        return None
+
+    readme = folder / "README.md"
+    existing = readme.read_text(encoding="utf-8") if readme.exists() else ""
+    author = split_author(existing).strip()
+    if not author:
+        author = (
+            f"<!-- Write your theme's README below. Anything here is kept; "
+            f"the block above is generated. Add screenshots, links, socials, "
+            f"install notes, credits… -->\n"
+        )
+
+    block = render_block(folder, packs)
+    new = f"{block}\n\n---\n\n{author}\n"
+    return (readme.as_posix(), new)
+
+
+def iter_theme_dirs(targets: list[str]) -> list[Path]:
+    if targets:
+        return [Path(t) for t in targets]
+    root = Path("themes")
+    if not root.is_dir():
+        return []
+    return sorted(
+        p for p in root.iterdir()
+        if p.is_dir() and not p.name.startswith((".", "_"))
+    )
+
+
+def main(argv: list[str]) -> int:
+    check = "--check" in argv
+    targets = [a for a in argv if not a.startswith("--")]
+
+    stale: list[str] = []
+    for folder in iter_theme_dirs(targets):
+        result = render_folder(folder)
+        if result is None:
+            continue
+        path, new = result
+        p = Path(path)
+        current = p.read_text(encoding="utf-8") if p.exists() else ""
+        if current == new:
+            print(f"[ok]    {path}")
+            continue
+        if check:
+            stale.append(path)
+            print(f"[stale] {path}")
+        else:
+            p.write_text(new, encoding="utf-8")
+            print(f"[write] {path}")
+
+    if check and stale:
+        print(f"\n{len(stale)} README(s) out of date. Run render_readme.py.")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

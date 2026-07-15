@@ -1,0 +1,14 @@
+{
+  "manifestVersion": 1,
+  "id": "your-theme",
+  "name": "Your Theme",
+  "author": "your name",
+  "version": "1.0.0",
+  "description": "One sentence about the look.",
+  "homepage": "https://github.com/your/link",
+  "license": "MIT",
+  "base": "dark",
+  "pelton": { "min": "1.0.8" },
+  "tokens": ["tokens/colors.json"],
+  "css": []
+}

@@ -1,0 +1,40 @@
+name: Request / suggest a theme
+description: Ask the community to build a theme you would love to see.
+title: "[Request] <theme idea>"
+labels: ["theme-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea but no time (or tools) to build it? Describe it here and
+        maybe someone in the community picks it up. 💡
+  - type: input
+    id: name
+    attributes:
+      label: Theme idea
+      placeholder: e.g. Catppuccin Mocha, Dracula, Solarized-but-warmer…
+    validations:
+      required: true
+  - type: dropdown
+    id: base
+    attributes:
+      label: Light or dark?
+      options:
+        - dark
+        - light
+        - either / both
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What should it look like?
+      description: Palette references, links to the original, mood, screenshots — anything that helps.
+    validations:
+      required: true
+  - type: input
+    id: reference
+    attributes:
+      label: Reference link
+      description: A link to the palette or original theme, if there is one.
+      placeholder: e.g. https://github.com/catppuccin/catppuccin

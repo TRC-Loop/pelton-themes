@@ -1,0 +1,82 @@
+name: Submit a theme
+description: Share a theme when you would rather not open a pull request yourself.
+title: "[Theme] <your theme name>"
+labels: ["theme-submission", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing a theme! 🎨
+
+        > [!NOTE]
+        > If you are comfortable with git, opening a **pull request** is faster
+        > and gives you full credit in the history. See
+        > [CONTRIBUTING.md](https://github.com/TRC-Loop/pelton-themes/blob/main/CONTRIBUTING.md).
+        > This form is the no-git fallback: a maintainer turns it into a PR for you.
+  - type: input
+    id: name
+    attributes:
+      label: Theme name
+      placeholder: e.g. Nordish
+    validations:
+      required: true
+  - type: input
+    id: author
+    attributes:
+      label: Author / credit
+      description: How you want to be credited, and a link if you like.
+      placeholder: e.g. Arne K. (https://github.com/...)
+    validations:
+      required: true
+  - type: dropdown
+    id: base
+    attributes:
+      label: Base
+      description: Which built-in look fills anything the theme does not override.
+      options:
+        - dark
+        - light
+    validations:
+      required: true
+  - type: input
+    id: made_for
+    attributes:
+      label: Made for Pelton version
+      description: The Pelton version you built and tested against (manifest `pelton.min`).
+      placeholder: e.g. 1.0.8
+    validations:
+      required: true
+  - type: input
+    id: license
+    attributes:
+      label: License
+      description: A LICENSE is required. Which license do you release the theme under?
+      placeholder: e.g. MIT
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: The .peltontheme file
+      description: Drag and drop your exported `.peltontheme` file into this box.
+      placeholder: Drop the file here — GitHub attaches it and inserts a link.
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A sentence or two, plus any preview screenshots, links or socials.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: The theme imports cleanly in Pelton (Settings → Themes → Import theme).
+          required: true
+        - label: It contains no remote `url()` or `@import`; fonts and images are bundled.
+          required: true
+        - label: I have the right to share this, and a preview is included (recommended).
+          required: true

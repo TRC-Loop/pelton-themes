@@ -1,0 +1,12 @@
+{
+  "surface-base": "#1e1e2e",
+  "surface-raised": "#282a3a",
+  "surface-overlay": "#313244",
+  "surface-sunken": "#181825",
+  "surface-hover": "#313244",
+  "text-primary": "#cdd6f4",
+  "text-secondary": "#bac2de",
+  "text-tertiary": "#9399b2",
+  "accent": "#89b4fa",
+  "accent-fg": "#1e1e2e"
+}
