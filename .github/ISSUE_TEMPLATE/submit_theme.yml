@@ -49,9 +49,28 @@ body:
   - type: input
     id: license
     attributes:
-      label: License
-      description: A LICENSE is required. Which license do you release the theme under?
-      placeholder: e.g. MIT
+      label: License name
+      description: The license name or SPDX id you release the theme under.
+      placeholder: e.g. MIT, Apache-2.0, CC-BY-4.0
+    validations:
+      required: true
+  - type: textarea
+    id: license_text
+    attributes:
+      label: Full license text
+      description: |
+        Paste the **complete** text of your license here. It becomes the
+        `LICENSE` file next to your theme. Not sure which to choose, or need the
+        text? See [choosealicense.com](https://choosealicense.com/). Remember to
+        **replace the placeholders** in the license (for example `[year]` and
+        `[fullname]`) with the real year and your name.
+      placeholder: |
+        MIT License
+
+        Copyright (c) 2026 Your Name
+
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        ...
     validations:
       required: true
   - type: markdown

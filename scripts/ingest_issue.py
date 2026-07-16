@@ -96,7 +96,8 @@ def main() -> int:
 
     name = find(sections, "theme", "name") or find(sections, "name")
     author = find(sections, "author") or "Unknown"
-    license_id = find(sections, "license") or "See manifest"
+    license_id = find(sections, "license", "name") or find(sections, "license")
+    license_text = find(sections, "license", "text") or find(sections, "full", "license")
     description = find(sections, "description")
     file_section = find(sections, "file") or find(sections, "theme", "file")
 
@@ -127,11 +128,14 @@ def main() -> int:
             emit(ok="false", reason=f"Failed to download {zip_name}: {exc}")
             return 0
 
-    (folder / "LICENSE").write_text(
-        f"This theme is released under the {license_id} license by {author}.\n\n"
-        f"If the full license text is not included here, please add it.\n",
-        encoding="utf-8",
-    )
+    if license_text:
+        (folder / "LICENSE").write_text(license_text.rstrip() + "\n", encoding="utf-8")
+    else:
+        (folder / "LICENSE").write_text(
+            f"This theme is released under the {license_id or 'stated'} license "
+            f"by {author}.\n\nThe full license text was not provided; please add it.\n",
+            encoding="utf-8",
+        )
 
     readme = f"## About\n\n{description or name}\n"
     if author and author != "Unknown":

@@ -75,16 +75,14 @@ repository collects them so you can find one, download it, and share your own.
 
 ## <img src="https://api.iconify.design/tabler/photo.svg?color=888888" width="24" align="center"> Gallery
 
-<!-- Add a row when you contribute a theme. -->
-
-| Theme | Base | Made for | Preview |
-| --- | --- | --- | --- |
-| [**Nordish**](themes/nordish/) | `dark` | Pelton `1.0.8`+ | An arctic, north-bluish dark theme |
+Browse every theme with live previews and one-click download at
+**[themes.pelton.app](https://themes.pelton.app)**, or see the full list in
+**[GALLERY.md](GALLERY.md)** — both are generated automatically from the
+themes in this repo.
 
 > [!NOTE]
-> Each theme's own `README.md` carries a metadata table — version,
-> compatibility, author and license — generated automatically from its
-> manifest.
+> Each theme's own `README.md` also carries a metadata table (version,
+> compatibility, author and license) generated from its manifest.
 
 ## <img src="https://api.iconify.design/tabler/upload.svg?color=888888" width="24" align="center"> Contribute a theme
 

@@ -38,13 +38,15 @@ jobs:
         run: python3 scripts/normalize_uploads.py
       - name: Render READMEs from manifests
         run: python3 scripts/render_readme.py
+      - name: Build the gallery index
+        run: python3 scripts/build_gallery.py
       - name: Commit changes
         run: |
           if [[ -n "$(git status --porcelain)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A themes
-            git commit -m "chore: normalize theme uploads and render metadata"
+            git add -A themes GALLERY.md
+            git commit -m "chore: normalize uploads, render metadata, rebuild gallery"
             git push
           else
             echo "Themes already normalized and up to date."
