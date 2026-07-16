@@ -9,5 +9,5 @@
 
 | Preview | Theme | Author | Base | Version | Made for | License |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | [**Amber Marigold**](themes/amber-marigold/) | Arne K. | `light` | `1.0.0` | `1.0.8`+ | `MIT` |
+| <a href="themes/amber-marigold/"><img src="themes/amber-marigold/preview.png" width="220" alt="Amber Marigold preview"></a> | [**Amber Marigold**](themes/amber-marigold/) | Arne K. | `light` | `1.0.0` | `1.0.8`+ | `MIT` |
 | <a href="themes/nordish/"><img src="themes/nordish/preview.svg" width="220" alt="Nordish preview"></a> | [**Nordish**](themes/nordish/) | Pelton | `dark` | `1.0.0` | `1.0.8`+ | `MIT` |
