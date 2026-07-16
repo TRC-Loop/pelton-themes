@@ -61,13 +61,14 @@ def slugify(name: str) -> str:
     return s or "theme"
 
 
-def first_zip_url(text: str) -> str | None:
-    # Markdown link or bare URL pointing at a .zip.
+def all_zip_urls(text: str) -> list[str]:
+    # Markdown links or bare URLs pointing at .zip files, in order, deduped.
+    urls: list[str] = []
     for m in re.finditer(r"https?://[^\s)\]]+", text):
         url = m.group(0)
-        if url.lower().split("?")[0].endswith(".zip"):
-            return url
-    return None
+        if url.lower().split("?")[0].endswith(".zip") and url not in urls:
+            urls.append(url)
+    return urls
 
 
 def download(url: str, dest: Path) -> None:
@@ -99,11 +100,11 @@ def main() -> int:
     description = find(sections, "description")
     file_section = find(sections, "file") or find(sections, "theme", "file")
 
-    url = first_zip_url(file_section) or first_zip_url(body)
+    urls = all_zip_urls(file_section) or all_zip_urls(body)
     if not name:
         emit(ok="false", reason="Could not find a theme name in the issue.")
         return 0
-    if not url:
+    if not urls:
         emit(ok="false", reason="Could not find an attached .zip in the issue.")
         return 0
 
@@ -111,15 +112,20 @@ def main() -> int:
     folder = Path("themes") / slug
     folder.mkdir(parents=True, exist_ok=True)
 
-    zip_name = re.sub(r"[^A-Za-z0-9._-]", "-", Path(url.split("?")[0]).name) or f"{slug}.zip"
-    if not zip_name.lower().endswith(".zip"):
-        zip_name += ".zip"
-
-    try:
-        download(url, folder / zip_name)
-    except Exception as exc:  # noqa: BLE001 - report any download failure
-        emit(ok="false", reason=f"Failed to download the attachment: {exc}")
-        return 0
+    # Download every attached .zip (a theme can ship several flavors).
+    used: set[str] = set()
+    for i, url in enumerate(urls):
+        zip_name = re.sub(r"[^A-Za-z0-9._-]", "-", Path(url.split("?")[0]).name)
+        if not zip_name.lower().endswith(".zip"):
+            zip_name = f"{slug}-{i + 1}.zip"
+        while zip_name in used:
+            zip_name = f"{Path(zip_name).stem}-{i + 1}.zip"
+        used.add(zip_name)
+        try:
+            download(url, folder / zip_name)
+        except Exception as exc:  # noqa: BLE001 - report any download failure
+            emit(ok="false", reason=f"Failed to download {zip_name}: {exc}")
+            return 0
 
     (folder / "LICENSE").write_text(
         f"This theme is released under the {license_id} license by {author}.\n\n"

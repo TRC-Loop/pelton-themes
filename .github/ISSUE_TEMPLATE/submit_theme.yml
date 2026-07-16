@@ -66,9 +66,13 @@ body:
   - type: textarea
     id: file
     attributes:
-      label: Your theme file (attached as .zip)
-      description: Rename your `.peltontheme` to `.zip`, then drag and drop it into this box.
-      placeholder: Drop your .zip here. GitHub attaches it and inserts a link.
+      label: Your theme file(s) (attached as .zip)
+      description: |
+        Rename each `.peltontheme` to `.zip`, then drag and drop it into this box.
+        Shipping different flavors of the same theme (for example a light and a
+        dark variant)? Attach all of them here and they land in the same theme
+        folder together.
+      placeholder: Drop your .zip file(s) here. GitHub attaches each one and inserts a link.
     validations:
       required: true
   - type: textarea
