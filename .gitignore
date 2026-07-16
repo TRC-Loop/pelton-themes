@@ -11,3 +11,7 @@ Thumbs.db
 
 # Generated Pages output
 _site/
+
+# Python
+__pycache__/
+*.pyc

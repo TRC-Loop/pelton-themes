@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Turn a "Submit a theme" issue into files on disk for an automatic PR.
+
+Reads the issue form body (GitHub renders each field as a ``### Label`` heading
+followed by its value), finds the attached ``.zip``, downloads it into
+``themes/<slug>/`` and writes a LICENSE and a starter README. A later CI step
+(scripts/normalize_uploads.py) renames the ``.zip`` to ``.peltontheme``.
+
+Inputs come from the environment:
+    ISSUE_BODY    the raw issue body (markdown)
+    ISSUE_NUMBER  the issue number (for messages)
+    GH_TOKEN      optional token, used as a bearer for the download
+
+Outputs are written to $GITHUB_OUTPUT as ``key=value`` lines:
+    ok=true|false   whether a theme was ingested
+    reason=...      why not, when ok=false
+    slug=...        the theme slug / folder name
+    name=...        the theme display name
+
+No third-party dependencies: standard library only.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import urllib.request
+from pathlib import Path
+
+NO_RESPONSE = {"", "_no response_", "_no response_.", "n/a", "none"}
+
+
+def parse_sections(body: str) -> dict[str, str]:
+    sections: dict[str, str] = {}
+    current = None
+    buf: list[str] = []
+    for line in body.replace("\r\n", "\n").split("\n"):
+        m = re.match(r"^#{2,4}\s+(.*)$", line)
+        if m:
+            if current is not None:
+                sections[current] = "\n".join(buf).strip()
+            current = m.group(1).strip().lower()
+            buf = []
+        elif current is not None:
+            buf.append(line)
+    if current is not None:
+        sections[current] = "\n".join(buf).strip()
+    return sections
+
+
+def find(sections: dict[str, str], *needles: str) -> str:
+    for key, val in sections.items():
+        if all(n in key for n in needles):
+            v = val.strip()
+            return "" if v.lower() in NO_RESPONSE else v
+    return ""
+
+
+def slugify(name: str) -> str:
+    s = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return s or "theme"
+
+
+def first_zip_url(text: str) -> str | None:
+    # Markdown link or bare URL pointing at a .zip.
+    for m in re.finditer(r"https?://[^\s)\]]+", text):
+        url = m.group(0)
+        if url.lower().split("?")[0].endswith(".zip"):
+            return url
+    return None
+
+
+def download(url: str, dest: Path) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": "pelton-themes-bot"})
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if token and ("github.com" in url or "githubusercontent.com" in url):
+        req.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(req) as resp, dest.open("wb") as fh:
+        fh.write(resp.read())
+
+
+def emit(**kw) -> None:
+    out = os.environ.get("GITHUB_OUTPUT")
+    lines = [f"{k}={v}" for k, v in kw.items()]
+    if out:
+        with open(out, "a", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+    for line in lines:
+        print(line)
+
+
+def main() -> int:
+    body = os.environ.get("ISSUE_BODY", "")
+    sections = parse_sections(body)
+
+    name = find(sections, "theme", "name") or find(sections, "name")
+    author = find(sections, "author") or "Unknown"
+    license_id = find(sections, "license") or "See manifest"
+    description = find(sections, "description")
+    file_section = find(sections, "file") or find(sections, "theme", "file")
+
+    url = first_zip_url(file_section) or first_zip_url(body)
+    if not name:
+        emit(ok="false", reason="Could not find a theme name in the issue.")
+        return 0
+    if not url:
+        emit(ok="false", reason="Could not find an attached .zip in the issue.")
+        return 0
+
+    slug = slugify(name)
+    folder = Path("themes") / slug
+    folder.mkdir(parents=True, exist_ok=True)
+
+    zip_name = re.sub(r"[^A-Za-z0-9._-]", "-", Path(url.split("?")[0]).name) or f"{slug}.zip"
+    if not zip_name.lower().endswith(".zip"):
+        zip_name += ".zip"
+
+    try:
+        download(url, folder / zip_name)
+    except Exception as exc:  # noqa: BLE001 - report any download failure
+        emit(ok="false", reason=f"Failed to download the attachment: {exc}")
+        return 0
+
+    (folder / "LICENSE").write_text(
+        f"This theme is released under the {license_id} license by {author}.\n\n"
+        f"If the full license text is not included here, please add it.\n",
+        encoding="utf-8",
+    )
+
+    readme = f"## About\n\n{description or name}\n"
+    if author and author != "Unknown":
+        readme += f"\n_Submitted by {author}._\n"
+    (folder / "README.md").write_text(readme, encoding="utf-8")
+
+    emit(ok="true", slug=slug, name=name)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

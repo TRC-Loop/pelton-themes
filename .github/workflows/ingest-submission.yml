@@ -1,0 +1,84 @@
+name: Ingest theme submission
+
+# When someone files a "Submit a theme" issue and attaches their theme (as a
+# .zip, since GitHub rejects .peltontheme attachments), this opens a pull
+# request with the theme laid out in themes/<slug>/ so no maintainer has to
+# move files or rename anything by hand.
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  ingest:
+    if: contains(github.event.issue.labels.*.name, 'theme-submission')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Parse issue and download the attached theme
+        id: ingest
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ingest_issue.py
+
+      - name: Comment if the submission is incomplete
+        if: steps.ingest.outputs.ok != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body \
+            "🤖 I couldn't open a pull request automatically: ${{ steps.ingest.outputs.reason }}
+
+          Please edit the issue to fix it, or open a pull request yourself following [CONTRIBUTING.md](https://github.com/TRC-Loop/pelton-themes/blob/main/CONTRIBUTING.md)."
+
+      - name: Rename .zip to .peltontheme
+        if: steps.ingest.outputs.ok == 'true'
+        run: python3 scripts/normalize_uploads.py
+
+      - name: Create branch, commit and open a PR
+        if: steps.ingest.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLUG: ${{ steps.ingest.outputs.slug }}
+          NAME: ${{ steps.ingest.outputs.name }}
+          ISSUE: ${{ github.event.issue.number }}
+          AUTHOR: ${{ github.event.issue.user.login }}
+        run: |
+          set -e
+          BRANCH="submission/${SLUG}-issue-${ISSUE}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add -A themes
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Add theme: ${NAME} (from #${ISSUE})"
+          git push --force origin "$BRANCH"
+
+          if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')" != "0" ]; then
+            echo "A pull request for $BRANCH already exists; updated it."
+            exit 0
+          fi
+
+          PR_URL=$(gh pr create \
+            --title "Add theme: ${NAME}" \
+            --body "Automated from #${ISSUE} (submitted by @${AUTHOR}).
+
+          Closes #${ISSUE} on merge. CI validates the theme, renames the upload to \`.peltontheme\`, and renders the README metadata." \
+            --label theme-submission \
+            --head "$BRANCH")
+
+          gh issue comment "$ISSUE" --body "🤖 Opened a pull request for your theme: ${PR_URL}"
