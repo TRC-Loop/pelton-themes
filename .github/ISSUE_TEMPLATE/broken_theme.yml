@@ -7,8 +7,8 @@ body:
     id: theme
     attributes:
       label: Which theme?
-      description: The folder name under themes/, e.g. nordish.
-      placeholder: e.g. nordish
+      description: The folder name under themes/, e.g. amber-marigold.
+      placeholder: e.g. amber-marigold
     validations:
       required: true
   - type: dropdown

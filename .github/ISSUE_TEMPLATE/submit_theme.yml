@@ -17,7 +17,7 @@ body:
     id: name
     attributes:
       label: Theme name
-      placeholder: e.g. Nordish
+      placeholder: e.g. Amber Marigold
     validations:
       required: true
   - type: input

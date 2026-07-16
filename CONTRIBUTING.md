@@ -16,10 +16,10 @@ Every theme is one folder under `themes/`:
 
 ```text
 themes/
-└── nordish/
+└── your-theme/
     ├── README.md            # your description (CI prepends a metadata header)
     ├── LICENSE              # required
-    ├── nordish.peltontheme  # one file, or several if the pack ships variants
+    ├── your-theme.peltontheme  # one file, or several if the pack ships variants
     └── preview.png          # recommended, not required
 ```
 
@@ -46,11 +46,17 @@ A `.peltontheme` is just a zip with `manifest.json` at its root.
 
    ```sh
    cd source
-   zip -r ../nordish.peltontheme manifest.json tokens css assets
+   zip -r ../your-theme.peltontheme manifest.json tokens css assets
    ```
 
 4. **Test it.** Open Pelton → **Settings → Themes → Import theme** and pick the
    file. You will see the metadata and raw CSS before anything installs.
+
+> [!TIP]
+> Testing a theme against an empty inbox is no fun. Start Pelton with
+> `--potatoes-are-nice` to launch it with example mailboxes and placeholder
+> content, so you can see your theme against realistic mail. It is temporary:
+> nothing is saved and your real accounts are untouched.
 
 > [!NOTE]
 > Prefer clicking **Export** in Pelton? That produces a ready `.peltontheme`

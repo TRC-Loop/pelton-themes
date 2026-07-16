@@ -7,7 +7,7 @@ time so a broken theme is caught in CI instead of on a user's machine.
 
 Usage:
     python3 scripts/validate_theme.py                # validate every theme
-    python3 scripts/validate_theme.py themes/nordish # validate one folder
+    python3 scripts/validate_theme.py themes/amber-marigold # validate one folder
 
 Exit code is non-zero if any error is found. Warnings never fail the build.
 No third-party dependencies: standard library only.

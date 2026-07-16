@@ -10,7 +10,7 @@ wrote below the marker is preserved untouched.
 Usage:
     python3 scripts/render_readme.py            # rewrite every theme README
     python3 scripts/render_readme.py --check    # fail if any README is stale
-    python3 scripts/render_readme.py themes/nordish
+    python3 scripts/render_readme.py themes/amber-marigold
 
 No third-party dependencies: standard library only.
 """
