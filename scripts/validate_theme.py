@@ -196,12 +196,29 @@ def validate_theme_dir(folder: Path) -> Reporter:
         rep.warn("no README found (recommended)")
 
     packs = sorted(folder.glob("*.peltontheme"))
-    if not packs:
+
+    # A theme uploaded through the issue form arrives as a .zip (GitHub rejects
+    # .peltontheme attachments). Accept a .zip that is really a theme container;
+    # CI renames it to .peltontheme on merge (scripts/normalize_uploads.py).
+    zip_packs = [z for z in sorted(folder.glob("*.zip")) if _is_theme_zip(z)]
+    for z in zip_packs:
+        rep.warn(f"{z.name} will be renamed to .peltontheme by CI")
+
+    all_packs = packs + zip_packs
+    if not all_packs:
         rep.error("no .peltontheme file found in the folder")
-    for pack in packs:
+    for pack in all_packs:
         validate_pack(pack, rep)
 
     return rep
+
+
+def _is_theme_zip(path: Path) -> bool:
+    try:
+        with zipfile.ZipFile(path) as zf:
+            return "manifest.json" in zf.namelist()
+    except zipfile.BadZipFile:
+        return False
 
 
 def iter_theme_dirs(targets: list[str]) -> list[Path]:

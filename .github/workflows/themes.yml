@@ -24,8 +24,8 @@ jobs:
   # Regenerate the metadata header in each theme README and commit it back.
   # Only on main: pull requests from forks cannot push, and the header is not
   # required for review — it lands once the PR is merged.
-  render-readmes:
-    name: Render theme READMEs
+  normalize:
+    name: Normalize uploads and render READMEs
     if: github.event_name == 'push'
     needs: validate
     runs-on: ubuntu-latest
@@ -34,6 +34,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Rename uploaded .zip themes back to .peltontheme
+        run: python3 scripts/normalize_uploads.py
       - name: Render READMEs from manifests
         run: python3 scripts/render_readme.py
       - name: Commit changes
@@ -41,9 +43,9 @@ jobs:
           if [[ -n "$(git status --porcelain)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add themes
-            git commit -m "chore: render theme README metadata"
+            git add -A themes
+            git commit -m "chore: normalize theme uploads and render metadata"
             git push
           else
-            echo "READMEs already up to date."
+            echo "Themes already normalized and up to date."
           fi

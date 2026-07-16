@@ -54,12 +54,21 @@ body:
       placeholder: e.g. MIT
     validations:
       required: true
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > GitHub does not allow attaching `.peltontheme` files here. A
+        > `.peltontheme` is already a zip, so just **rename** your
+        > `YourTheme.peltontheme` to `YourTheme.zip` (or drop it inside a new
+        > `.zip`) and attach that. Once it is in the repo, CI renames it back
+        > to `.peltontheme` automatically. You do not need to do anything else.
   - type: textarea
     id: file
     attributes:
-      label: The .peltontheme file
-      description: Drag and drop your exported `.peltontheme` file into this box.
-      placeholder: Drop the file here — GitHub attaches it and inserts a link.
+      label: Your theme file (attached as .zip)
+      description: Rename your `.peltontheme` to `.zip`, then drag and drop it into this box.
+      placeholder: Drop your .zip here. GitHub attaches it and inserts a link.
     validations:
       required: true
   - type: textarea
@@ -79,4 +88,6 @@ body:
         - label: It contains no remote `url()` or `@import`; fonts and images are bundled.
           required: true
         - label: I have the right to share this, and a preview is included (recommended).
+          required: true
+        - label: I renamed the file to `.zip` for upload (GitHub rejects `.peltontheme`).
           required: true

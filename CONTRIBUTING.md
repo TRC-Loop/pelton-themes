@@ -116,8 +116,16 @@ You can contribute either way. Pull requests are preferred.
 
 Not comfortable with git? Open a
 [**Submit a theme**](https://github.com/TRC-Loop/pelton-themes/issues/new/choose)
-issue, attach your `.peltontheme`, and a maintainer will turn it into a PR for
-you.
+issue, attach your theme, and a maintainer will turn it into a PR for you.
+
+> [!IMPORTANT]
+> GitHub does not allow attaching `.peltontheme` files to issues. Since a
+> `.peltontheme` is already a zip, just rename `YourTheme.peltontheme` to
+> `YourTheme.zip` (or drop it inside a new `.zip`) before attaching. Once the
+> file is in the repo, **CI renames any `.zip` theme container back to
+> `.peltontheme` automatically** ([`scripts/normalize_uploads.py`](scripts/normalize_uploads.py)),
+> so no one has to rename it by hand. Committing a `.peltontheme` directly in a
+> pull request also works fine and skips this entirely.
 
 ---
 
