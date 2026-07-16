@@ -2,11 +2,12 @@
 
 # Theme gallery
 
-**1 theme.** Browse them live, with previews and one-click download, at **[themes.pelton.app](https://themes.pelton.app)**.
+**2 themes.** Browse them live, with previews and one-click download, at **[themes.pelton.app](https://themes.pelton.app)**.
 
 > [!NOTE]
 > This list is generated automatically from each theme's manifest when themes change. To add yours, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 | Preview | Theme | Author | Base | Version | Made for | License |
 | --- | --- | --- | --- | --- | --- | --- |
+| — | [**Amber Marigold**](themes/amber-marigold/) | Arne K. | `light` | `1.0.0` | `1.0.8`+ | `MIT` |
 | <a href="themes/nordish/"><img src="themes/nordish/preview.svg" width="220" alt="Nordish preview"></a> | [**Nordish**](themes/nordish/) | Pelton | `dark` | `1.0.0` | `1.0.8`+ | `MIT` |
