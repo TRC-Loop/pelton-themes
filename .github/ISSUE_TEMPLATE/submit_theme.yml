@@ -87,7 +87,9 @@ body:
           required: true
         - label: It contains no remote `url()` or `@import`; fonts and images are bundled.
           required: true
-        - label: I have the right to share this, and a preview is included (recommended).
+        - label: I have the right to share this theme.
           required: true
+        - label: A preview image is included (recommended).
+          required: false
         - label: I renamed the file to `.zip` for upload (GitHub rejects `.peltontheme`).
           required: true
