@@ -41,4 +41,34 @@ A soothing pastel theme for [Pelton](https://pelton.app), ported in all four off
 > [!NOTE]
 > This is an **unofficial** port and is not affiliated with or endorsed by the Catppuccin project. Colors are ported from the official palette; all credit for the original theme goes to the Catppuccin authors.
 
-_Submitted by Catppuccin (https://catppuccin.com)._
+## Previews
+
+<table>
+  <tr>
+    <td align="center"><b>Mocha</b></td>
+    <td align="center"><b>Macchiato</b></td>
+  </tr>
+  <tr>
+    <td><img width="696" alt="Mocha" src="https://github.com/user-attachments/assets/c092cd0d-6c7a-4053-ac62-82a57525536b" /></td>
+    <td><img width="696" alt="Macchiato" src="https://github.com/user-attachments/assets/0b87ef0a-fe61-4de8-bdec-d3ea7aa3257d" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Frappé</b></td>
+    <td align="center"><b>Latte</b></td>
+  </tr>
+  <tr>
+    <td><img width="696" alt="Frappé" src="https://github.com/user-attachments/assets/eb084924-bf12-4883-ad60-21907c9fdf07" /></td>
+    <td><img width="696" alt="Latte" src="https://github.com/user-attachments/assets/39549c29-ffdd-49ab-84dc-89e7b7ec39a9" /></td>
+  </tr>
+</table>
+
+## Credits
+
+- [Catppuccin](https://github.com/catppuccin/catppuccin): original palette and theme concept
+- [Pelton](https://pelton.app/): the email client this theme is built for
+
+## Contributing
+
+This is an unofficial port. Improvements and PRs are welcome. If you can make it closer to the official Catppuccin spec, please do.
+
+_Submitted by Catppuccin (https://catppuccin.com); ported by Arne K. (https://arne.sh)._
