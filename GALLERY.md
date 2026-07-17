@@ -2,7 +2,7 @@
 
 # Theme gallery
 
-**2 themes.** Browse them live, with previews and one-click download, at **[themes.pelton.app](https://themes.pelton.app)**.
+**3 themes.** Browse them live, with previews and one-click download, at **[themes.pelton.app](https://themes.pelton.app)**.
 
 > [!NOTE]
 > This list is generated automatically from each theme's manifest when themes change. To add yours, see [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -10,4 +10,5 @@
 | Preview | Theme | Author | Base | Version | Made for | License |
 | --- | --- | --- | --- | --- | --- | --- |
 | <a href="themes/amber-marigold/"><img src="themes/amber-marigold/preview.png" width="220" alt="Amber Marigold preview"></a> | [**Amber Marigold**](themes/amber-marigold/) | Arne K. | `light` | `1.0.0` | `1.0.8`+ | `MIT` |
+| <a href="themes/catppuccin/"><img src="themes/catppuccin/preview.png" width="220" alt="Catppuccin Frappé preview"></a> | [**Catppuccin Frappé**](themes/catppuccin/) (4 flavors) | Catppuccin (ported by Arne K.) | `dark` | `1.0.8` | `1.0.8`+ | `MIT` |
 | — | [**Theme1**](themes/marigold/) |  | `dark` | `` | — | `` |
