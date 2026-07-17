@@ -25,6 +25,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from themelib import read_manifest, theme_meta
+from mdrender import md_to_html
+
+META_END = "<!-- PELTON-META:END -->"
 
 REPO = "https://github.com/TRC-Loop/pelton-themes"
 FOLDER_BASE = f"{REPO}/tree/main/themes"
@@ -119,6 +122,21 @@ def detect_capabilities(pack: Path, manifest: dict) -> dict:
     }
 
 
+def author_readme(folder: Path) -> str:
+    readme = folder / "README.md"
+    if not readme.exists():
+        return ""
+    text = readme.read_text(encoding="utf-8")
+    if META_END in text:
+        text = text.split(META_END, 1)[1].lstrip("\n")
+        if text.startswith("---"):
+            text = text[3:].lstrip("\n")
+    text = text.strip()
+    if not text or text.lstrip().startswith("<!--"):
+        return ""
+    return md_to_html(text)
+
+
 def collect_theme(folder: Path, out: Path) -> dict | None:
     packs = sorted(folder.glob("*.peltontheme"))
     if not packs:
@@ -187,6 +205,7 @@ def collect_theme(folder: Path, out: Path) -> dict | None:
         "folder": f"{FOLDER_BASE}/{slug}",
         "caps": caps,
         "url": f"{slug}.html",
+        "readme": author_readme(folder),
     }
 
 
@@ -214,7 +233,8 @@ def asset_hash() -> str:
 def render_gallery(themes: list[dict]) -> str:
     count = len(themes)
     plural = "theme" if count == 1 else "themes"
-    data = f"window.__THEMES__ = {json.dumps(themes, ensure_ascii=False)};"
+    slim = [{k: v for k, v in t.items() if k != "readme"} for t in themes]
+    data = "window.__THEMES__ = " + json.dumps(slim, ensure_ascii=False).replace("<", "\\u003c") + ";"
     return (
         SHELL.replace("__TITLE__", "Pelton Themes")
         .replace("__DESC__", "Community theme gallery for Pelton, the privacy-first email client. Browse, preview and download .peltontheme files.")
@@ -225,7 +245,7 @@ def render_gallery(themes: list[dict]) -> str:
 
 
 def render_detail(theme: dict) -> str:
-    data = f"window.__THEME__ = {json.dumps(theme, ensure_ascii=False)};"
+    data = "window.__THEME__ = " + json.dumps(theme, ensure_ascii=False).replace("<", "\\u003c") + ";"
     desc = theme.get("description") or f"{theme['name']}, a theme for Pelton."
     return (
         SHELL.replace("__TITLE__", f"{theme['name']} · Pelton Themes")
@@ -314,6 +334,10 @@ __BODY__
   <div class="modal">
     <h2 id="modal-title">Download this theme?</h2>
     <p class="modal-theme" id="modal-theme"></p>
+    <div class="flavor-picker" id="modal-flavors" hidden>
+      <span class="flavor-label">Choose a flavor</span>
+      <div class="flavor-options" id="modal-flavor-options"></div>
+    </div>
     <div class="warn">
       <span>&#9888;&#65039;</span>
       <span><strong>Third-party content.</strong> Themes are community-submitted. We check every submission, but some things can slip through. A theme is code-adjacent, so treat it like anything you download from the internet. You install it at your own risk.</span>

@@ -268,6 +268,11 @@
     var bodyEl = el("div", "detail-body");
     bodyEl.appendChild(el("h1", null, t.name));
     if (t.description) bodyEl.appendChild(el("p", "detail-desc", t.description));
+    if (t.readme) {
+      var rm = el("div", "detail-readme");
+      rm.innerHTML = t.readme;
+      bodyEl.appendChild(rm);
+    }
     main.appendChild(bodyEl);
     gridEl.appendChild(main);
 
@@ -300,14 +305,11 @@
     if (capsRow.children.length) sc.appendChild(sideBlock("Alters", capsRow));
 
     var dl = el("div", "downloads");
-    (t.flavors || []).forEach(function (f) {
-      var b = el("button", "btn btn-primary btn-download");
-      b.type = "button";
-      var label = t.multi ? f.name + " (" + f.base + ")" : "Download";
-      b.innerHTML = icon("download") + "<span>" + label + "</span>";
-      b.addEventListener("click", function () { openDownload(t.name, f); });
-      dl.appendChild(b);
-    });
+    var dlBtn = el("button", "btn btn-primary btn-download");
+    dlBtn.type = "button";
+    dlBtn.innerHTML = icon("download") + "<span>" + (t.multi ? "Download a flavor" : "Download") + "</span>";
+    dlBtn.addEventListener("click", function () { openModal(t); });
+    dl.appendChild(dlBtn);
     sc.appendChild(dl);
 
     var src = el("a", "btn btn-ghost btn-source");
@@ -330,11 +332,38 @@
   var modalTheme = document.getElementById("modal-theme");
   var modalConfirm = document.getElementById("modal-confirm");
   var modalCancel = document.getElementById("modal-cancel");
+  var flavorBox = document.getElementById("modal-flavors");
+  var flavorOptions = document.getElementById("modal-flavor-options");
   var pending = null;
 
-  function openDownload(themeName, flavor) {
+  function select(themeName, flavor) {
     pending = flavor;
     modalTheme.textContent = themeName + " · " + flavor.file;
+  }
+
+  function openModal(t) {
+    var flavors = t.flavors || [];
+    flavorOptions.innerHTML = "";
+    if (flavors.length > 1) {
+      flavorBox.hidden = false;
+      flavors.forEach(function (f, i) {
+        var b = el("button", "flavor-opt");
+        b.type = "button";
+        b.innerHTML = '<span class="flavor-name">' + f.name + '</span>' +
+          '<span class="flavor-base base-' + f.base + '">' + f.base + '</span>';
+        b.addEventListener("click", function () {
+          select(t.name, f);
+          for (var k = 0; k < flavorOptions.children.length; k++)
+            flavorOptions.children[k].setAttribute("aria-current", "false");
+          b.setAttribute("aria-current", "true");
+        });
+        if (i === 0) b.setAttribute("aria-current", "true");
+        flavorOptions.appendChild(b);
+      });
+    } else {
+      flavorBox.hidden = true;
+    }
+    select(t.name, flavors[0]);
     backdrop.classList.add("open");
     modalConfirm.focus();
   }
