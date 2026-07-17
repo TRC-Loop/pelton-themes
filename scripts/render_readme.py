@@ -22,6 +22,9 @@ import sys
 import zipfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from themelib import theme_meta
+
 START = "<!-- PELTON-META:START (generated from manifest.json by CI — do not edit inside this block) -->"
 END = "<!-- PELTON-META:END -->"
 
@@ -52,57 +55,54 @@ def row(label: str, value: str) -> str:
 
 
 def render_block(folder: Path, packs: list[Path]) -> str:
+    meta = theme_meta(folder, packs)
     manifests = [(p, read_manifest(p)) for p in packs]
     primary = manifests[0][1]
-    pel = primary.get("pelton", {}) or {}
 
-    name = primary.get("name", folder.name)
     lines: list[str] = [
         START,
         "> [!NOTE]",
         "> This section is generated automatically from the theme's "
-        "`.peltontheme` manifest. Do not edit it by hand — change the theme "
+        "`.peltontheme` manifest. Do not edit it by hand, change the theme "
         "and let CI re-render it.",
         "",
-        f"# {name}",
+        f"# {meta['name']}",
     ]
-    desc = primary.get("description")
-    if desc:
-        lines += ["", f"*{desc}*"]
+    if meta["description"]:
+        lines += ["", f"*{meta['description']}*"]
 
-    lines += [
-        "",
-        "| Field | Value |",
-        "| --- | --- |",
-        row("Theme version", f"`{primary.get('version', '—')}`"),
-        row("Made for", made_for_text(pel)),
-        row("Compatibility", compat_text(pel)),
-        row("Base", f"`{primary.get('base', '—')}`"),
-        row("Author", primary.get("author", "—")),
-        row("License", f"`{primary.get('license', 'see LICENSE')}`"),
-        row("id", f"`{primary.get('id', folder.name)}`"),
-    ]
-    if primary.get("homepage"):
-        lines.append(row("Homepage", f"<{primary['homepage']}>"))
-    lines.append(row("Package", " ".join(f"`{p.name}`" for p in packs)))
+    lines += ["", "| Field | Value |", "| --- | --- |"]
 
-    # When a folder ships more than one theme, list each package explicitly.
-    if len(manifests) > 1:
+    if meta["multi"]:
         lines += [
+            row("Authors", ", ".join(meta["authors"]) or "—"),
+            row("Licenses", ", ".join(f"`{lc}`" for lc in meta["licenses"]) or "—"),
+            row("Bases", ", ".join(f"`{b}`" for b in meta["bases"]) or "—"),
+            row("Flavors", str(len(meta["flavors"]))),
             "",
-            f"> [!TIP]",
-            f"> This pack ships **{len(manifests)} themes**.",
-            "",
-            "| Package | Name | Version | Base | Made for |",
+            "| Flavor | Version | Base | Made for | Package |",
             "| --- | --- | --- | --- | --- |",
         ]
         for pack, man in manifests:
             mp = man.get("pelton", {}) or {}
             lines.append(
-                f"| `{pack.name}` | {man.get('name', '—')} | "
-                f"`{man.get('version', '—')}` | `{man.get('base', '—')}` | "
-                f"{made_for_text(mp)} |"
+                f"| {man.get('name', '—')} | `{man.get('version', '—')}` | "
+                f"`{man.get('base', '—')}` | {made_for_text(mp)} | `{pack.name}` |"
             )
+    else:
+        pel = primary.get("pelton", {}) or {}
+        lines += [
+            row("Theme version", f"`{primary.get('version', '—')}`"),
+            row("Made for", made_for_text(pel)),
+            row("Compatibility", compat_text(pel)),
+            row("Base", f"`{primary.get('base', '—')}`"),
+            row("Author", primary.get("author", "—")),
+            row("License", f"`{primary.get('license', 'see LICENSE')}`"),
+            row("id", f"`{primary.get('id', folder.name)}`"),
+        ]
+        if primary.get("homepage"):
+            lines.append(row("Homepage", f"<{primary['homepage']}>"))
+        lines.append(row("Package", f"`{packs[0].name}`"))
 
     lines += ["", END]
     return "\n".join(lines)
@@ -112,7 +112,7 @@ def split_author(existing: str) -> str:
     """Return the author-written portion of an existing README."""
     if END in existing:
         after = existing.split(END, 1)[1]
-        # Drop a single leading rule + surrounding whitespace we added before.
+
         after = after.lstrip("\n")
         if after.startswith("---"):
             after = after[3:].lstrip("\n")

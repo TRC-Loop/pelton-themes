@@ -26,7 +26,11 @@ themes/
 - **Folder name** = your theme's slug: lowercase, digits and dashes only
   (`gruvbox-dark`, `catppuccin-mocha`).
 - Ship **more than one** `.peltontheme` in the same folder when they belong
-  together (for example a matched light and dark pair).
+  together (for example a matched light and dark pair, or several flavors). The
+  gallery groups them under one theme and offers a download per flavor. The
+  theme name and description are taken from the common part of the flavors, or
+  from an optional `theme.json` (`{ "name": ..., "description": ... }`) in the
+  folder if you want to set them explicitly.
 - Folders starting with `_` or `.` are ignored — that is how
   [`themes/_TEMPLATE/`](themes/_TEMPLATE/) stays out of the gallery.
 

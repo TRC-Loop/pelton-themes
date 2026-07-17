@@ -1,12 +1,10 @@
-/* Gallery rendering, search and pagination. All data is baked into the page
-   at build time (window.__THEMES__): no network calls, no GitHub API. */
 (function () {
   "use strict";
 
-  var THEMES = window.__THEMES__ || [];
   var PER_PAGE = 9;
+  var CAROUSEL_MS = 5000;
+  var timers = [];
 
-  // Inline Tabler icons (self-hosted, no external requests).
   var ICONS = {
     download:
       '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>',
@@ -22,35 +20,19 @@
       '<path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
     alert:
       '<path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0"/><path d="M12 16h.01"/>',
+    left: '<path d="M15 6l-6 6l6 6"/>',
+    right: '<path d="M9 6l6 6l-6 6"/>',
+    back: '<path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/>',
+    external:
+      '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"/><path d="M11 13l9 -9"/><path d="M15 4h5v5"/>',
   };
 
   function icon(name) {
     return (
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
-      'aria-hidden="true">' +
-      (ICONS[name] || "") +
-      "</svg>"
+      'aria-hidden="true">' + (ICONS[name] || "") + "</svg>"
     );
-  }
-
-  var grid = document.getElementById("grid");
-  var pager = document.getElementById("pagination");
-  var search = document.getElementById("search");
-  var countEl = document.getElementById("count");
-
-  var state = { page: 1, query: "" };
-
-  function filtered() {
-    var q = state.query.trim().toLowerCase();
-    if (!q) return THEMES;
-    return THEMES.filter(function (t) {
-      return (
-        t.name.toLowerCase().indexOf(q) !== -1 ||
-        (t.author || "").toLowerCase().indexOf(q) !== -1 ||
-        (t.description || "").toLowerCase().indexOf(q) !== -1
-      );
-    });
   }
 
   function el(tag, cls, text) {
@@ -60,7 +42,6 @@
     return e;
   }
 
-  // Deterministic avatar colour from the author name.
   function avatarColor(name) {
     var h = 0;
     for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
@@ -69,8 +50,7 @@
 
   function avatar(name) {
     var a = el("span", "avatar");
-    var letter = (name.replace(/[^a-z0-9]/gi, "")[0] || "?").toUpperCase();
-    a.textContent = letter;
+    a.textContent = (name.replace(/[^a-z0-9]/gi, "")[0] || "?").toUpperCase();
     a.style.background = avatarColor(name || "?");
     return a;
   }
@@ -91,181 +71,285 @@
     if (caps.icons) row.appendChild(cap("icons", "Replaces interface icons"));
     if (caps.css) row.appendChild(cap("code", "Ships custom CSS"));
     if (caps.external)
-      row.appendChild(
-        cap(
-          "alert",
-          "Makes external requests. Not necessarily unsafe, but not ideal when privacy matters.",
-          true
-        )
-      );
+      row.appendChild(cap("alert", "Makes external requests. Not necessarily unsafe, but not ideal when privacy matters.", true));
     return row;
+  }
+
+  function preview(t, opts) {
+    opts = opts || {};
+    var wrap = el("div", "preview" + (opts.large ? " preview-large" : ""));
+    var imgs = t.previews || [];
+
+    if (imgs.length === 0) {
+      var ph = el("div", "placeholder");
+      ph.innerHTML = icon("palette");
+      wrap.appendChild(ph);
+    } else {
+      var track = el("div", "carousel-track");
+      imgs.forEach(function (src, i) {
+        var img = el("img");
+        img.src = src;
+        img.alt = t.name + " preview " + (i + 1);
+        img.loading = "lazy";
+        if (i !== 0) img.style.display = "none";
+        track.appendChild(img);
+      });
+      wrap.appendChild(track);
+
+      if (imgs.length > 1) {
+        var dots = el("div", "carousel-dots");
+        var idx = 0;
+        function show(n) {
+          idx = (n + track.children.length) % track.children.length;
+          for (var k = 0; k < track.children.length; k++)
+            track.children[k].style.display = k === idx ? "" : "none";
+          for (var d = 0; d < dots.children.length; d++)
+            dots.children[d].setAttribute("aria-current", d === idx ? "true" : "false");
+        }
+        var timer = setInterval(function () { show(idx + 1); }, CAROUSEL_MS);
+        timers.push(timer);
+        function reset() { clearInterval(timer); timer = setInterval(function () { show(idx + 1); }, CAROUSEL_MS); timers.push(timer); }
+
+        imgs.forEach(function (_, i) {
+          var dot = el("button", "carousel-dot");
+          dot.type = "button";
+          dot.setAttribute("aria-label", "Preview " + (i + 1));
+          if (i === 0) dot.setAttribute("aria-current", "true");
+          if (opts.interactive)
+            dot.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); show(i); reset(); });
+          else dot.style.pointerEvents = "none";
+          dots.appendChild(dot);
+        });
+
+        if (opts.interactive) {
+          var prev = el("button", "carousel-arrow prev");
+          prev.type = "button";
+          prev.setAttribute("aria-label", "Previous preview");
+          prev.innerHTML = icon("left");
+          prev.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); show(idx - 1); reset(); });
+          var next = el("button", "carousel-arrow next");
+          next.type = "button";
+          next.setAttribute("aria-label", "Next preview");
+          next.innerHTML = icon("right");
+          next.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); show(idx + 1); reset(); });
+          wrap.appendChild(prev);
+          wrap.appendChild(next);
+        }
+        wrap.appendChild(dots);
+      }
+    }
+
+    if (t.version) wrap.appendChild(el("span", "version-tag", "v" + t.version));
+    if (t.multi) wrap.appendChild(el("span", "base-tag base-multi", t.flavors.length + " flavors"));
+    else if (t.bases && t.bases[0]) wrap.appendChild(el("span", "base-tag base-" + t.bases[0], t.bases[0]));
+    return wrap;
   }
 
   function card(t) {
     var c = el("article", "card");
+    c.tabIndex = 0;
+    c.setAttribute("role", "link");
+    function go() { window.location.href = t.url; }
+    c.addEventListener("click", go);
+    c.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
 
-    // Preview with a version tag overlaid bottom-right.
-    var preview = el("div", "preview");
-    if (t.preview) {
-      var img = el("img");
-      img.src = t.preview;
-      img.alt = t.name + " preview";
-      img.loading = "lazy";
-      preview.appendChild(img);
-    } else {
-      var ph = el("div", "placeholder");
-      ph.innerHTML = icon("palette");
-      preview.appendChild(ph);
-    }
-    if (t.version) {
-      var vtag = el("span", "version-tag", "v" + t.version);
-      preview.appendChild(vtag);
-    }
-    var baseTag = el("span", "base-tag base-" + (t.base || "dark"), t.base || "dark");
-    preview.appendChild(baseTag);
-    c.appendChild(preview);
+    c.appendChild(preview(t, { interactive: false }));
 
     var body = el("div", "body");
-
     var head = el("div", "card-head");
     head.appendChild(el("h3", null, t.name));
     if (t.peltonMin) head.appendChild(el("span", "made-for", "Pelton " + t.peltonMin + "+"));
     body.appendChild(head);
-
     if (t.description) body.appendChild(el("p", "desc", t.description));
 
-    // by <pfp> Username
     if (t.author) {
       var by = el("div", "author");
       by.appendChild(el("span", "by", "by"));
       by.appendChild(avatar(t.author));
-      by.appendChild(el("span", "username", t.author));
+      by.appendChild(el("span", "username", t.author + (t.authors && t.authors.length > 1 ? " +" + (t.authors.length - 1) : "")));
       body.appendChild(by);
     }
-
     body.appendChild(capabilities(t.caps));
 
-    var actions = el("div", "actions");
-    var dl = el("button", "btn btn-primary btn-download", null);
-    dl.type = "button";
-    dl.innerHTML = icon("download") + "<span>Download</span>";
-    dl.addEventListener("click", function () {
-      openModal(t);
-    });
-    actions.appendChild(dl);
+    var footer = el("div", "card-foot");
+    footer.appendChild(el("span", "view-link", "View theme"));
+    footer.innerHTML += icon("right");
+    body.appendChild(footer);
 
-    var src = el("a", "btn btn-ghost btn-source", null);
-    src.href = t.folder;
-    src.target = "_blank";
-    src.rel = "noreferrer noopener";
-    src.title = "View source folder";
-    src.innerHTML = icon("folder") + "<span>Source</span>";
-    actions.appendChild(src);
-
-    body.appendChild(actions);
     c.appendChild(body);
     return c;
   }
 
-  function pageButton(label, page, opts) {
-    opts = opts || {};
-    var b = el("button", null, label);
-    b.type = "button";
-    if (opts.current) b.setAttribute("aria-current", "true");
-    if (opts.disabled) b.disabled = true;
-    else
-      b.addEventListener("click", function () {
-        state.page = page;
-        render();
+  function runGallery(themes) {
+    var grid = document.getElementById("grid");
+    var pager = document.getElementById("pagination");
+    var search = document.getElementById("search");
+    var countEl = document.getElementById("count");
+    var state = { page: 1, query: "" };
+
+    function filtered() {
+      var q = state.query.trim().toLowerCase();
+      if (!q) return themes;
+      return themes.filter(function (t) {
+        return t.name.toLowerCase().indexOf(q) !== -1 ||
+          (t.author || "").toLowerCase().indexOf(q) !== -1 ||
+          (t.description || "").toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function pageButton(label, page, opts) {
+      opts = opts || {};
+      var b = el("button", null, label);
+      b.type = "button";
+      if (opts.current) b.setAttribute("aria-current", "true");
+      if (opts.disabled) b.disabled = true;
+      else b.addEventListener("click", function () {
+        state.page = page; render();
         window.scrollTo({ top: grid.offsetTop - 90, behavior: "smooth" });
       });
+      return b;
+    }
+
+    function renderPagination(total) {
+      pager.innerHTML = "";
+      var pages = Math.ceil(total / PER_PAGE);
+      if (pages <= 1) return;
+      pager.appendChild(pageButton("‹", state.page - 1, { disabled: state.page === 1 }));
+      var shown = [];
+      for (var i = 1; i <= pages; i++)
+        if (i === 1 || i === pages || Math.abs(i - state.page) <= 1) shown.push(i);
+      var last = 0;
+      shown.forEach(function (p) {
+        if (last && p - last > 1) pager.appendChild(el("span", "ellipsis", "…"));
+        pager.appendChild(pageButton(String(p), p, { current: p === state.page }));
+        last = p;
+      });
+      pager.appendChild(pageButton("›", state.page + 1, { disabled: state.page === pages }));
+    }
+
+    function render() {
+      timers.forEach(clearInterval); timers = [];
+      var items = filtered();
+      var pages = Math.max(1, Math.ceil(items.length / PER_PAGE));
+      if (state.page > pages) state.page = pages;
+      countEl.textContent = items.length + (items.length === 1 ? " theme" : " themes");
+      grid.innerHTML = "";
+      if (items.length === 0) { grid.appendChild(el("p", "empty", "No themes match your search.")); pager.innerHTML = ""; return; }
+      var start = (state.page - 1) * PER_PAGE;
+      items.slice(start, start + PER_PAGE).forEach(function (t) { grid.appendChild(card(t)); });
+      renderPagination(items.length);
+    }
+
+    if (search) search.addEventListener("input", function () { state.query = search.value; state.page = 1; render(); });
+    render();
+  }
+
+  function sideBlock(label, valueNode) {
+    var b = el("div", "side-block");
+    b.appendChild(el("span", "side-label", label));
+    if (typeof valueNode === "string") b.appendChild(el("span", "side-value", valueNode));
+    else b.appendChild(valueNode);
     return b;
   }
 
-  function renderPagination(total) {
-    pager.innerHTML = "";
-    var pages = Math.ceil(total / PER_PAGE);
-    if (pages <= 1) return;
+  function runDetail(t) {
+    var page = document.getElementById("theme-page");
+    document.title = t.name + " · Pelton Themes";
 
-    pager.appendChild(pageButton("‹", state.page - 1, { disabled: state.page === 1 }));
+    var back = el("a", "back");
+    back.href = "./";
+    back.innerHTML = icon("back") + "<span>All themes</span>";
+    page.appendChild(back);
 
-    var shown = [];
-    for (var i = 1; i <= pages; i++) {
-      if (i === 1 || i === pages || Math.abs(i - state.page) <= 1) shown.push(i);
+    var gridEl = el("div", "detail-grid");
+
+    var main = el("div", "detail-main");
+    main.appendChild(preview(t, { interactive: true, large: true }));
+    var bodyEl = el("div", "detail-body");
+    bodyEl.appendChild(el("h1", null, t.name));
+    if (t.description) bodyEl.appendChild(el("p", "detail-desc", t.description));
+    main.appendChild(bodyEl);
+    gridEl.appendChild(main);
+
+    var side = el("aside", "detail-side");
+    var sc = el("div", "side-card");
+
+    var authors = t.authors && t.authors.length ? t.authors : (t.author ? [t.author] : []);
+    if (authors.length) {
+      var av = el("div", "side-authors");
+      authors.forEach(function (a) {
+        var one = el("span", "side-author");
+        one.appendChild(avatar(a));
+        one.appendChild(el("span", null, a));
+        av.appendChild(one);
+      });
+      sc.appendChild(sideBlock(authors.length > 1 ? "Authors" : "Author", av));
     }
-    var last = 0;
-    shown.forEach(function (p) {
-      if (last && p - last > 1) pager.appendChild(el("span", "ellipsis", "…"));
-      pager.appendChild(pageButton(String(p), p, { current: p === state.page }));
-      last = p;
-    });
 
-    pager.appendChild(pageButton("›", state.page + 1, { disabled: state.page === pages }));
+    var versions = t.version ? [t.version] : dedupe(t.flavors.map(function (f) { return f.version; }));
+    if (versions.filter(Boolean).length) sc.appendChild(sideBlock(versions.length > 1 ? "Versions" : "Version", versions.filter(Boolean).map(function (v) { return "v" + v; }).join(", ")));
+
+    if (t.bases && t.bases.length) sc.appendChild(sideBlock(t.bases.length > 1 ? "Bases" : "Base", t.bases.join(", ")));
+
+    if (t.peltonMin) sc.appendChild(sideBlock("Made for", "Pelton " + t.peltonMin + " or newer"));
+
+    var licenses = t.licenses && t.licenses.length ? t.licenses : (t.license ? [t.license] : []);
+    if (licenses.length) sc.appendChild(sideBlock(licenses.length > 1 ? "Licenses" : "License", licenses.join(", ")));
+
+    var capsRow = capabilities(t.caps);
+    if (capsRow.children.length) sc.appendChild(sideBlock("Alters", capsRow));
+
+    var dl = el("div", "downloads");
+    (t.flavors || []).forEach(function (f) {
+      var b = el("button", "btn btn-primary btn-download");
+      b.type = "button";
+      var label = t.multi ? f.name + " (" + f.base + ")" : "Download";
+      b.innerHTML = icon("download") + "<span>" + label + "</span>";
+      b.addEventListener("click", function () { openDownload(t.name, f); });
+      dl.appendChild(b);
+    });
+    sc.appendChild(dl);
+
+    var src = el("a", "btn btn-ghost btn-source");
+    src.href = t.folder; src.target = "_blank"; src.rel = "noreferrer noopener";
+    src.innerHTML = icon("external") + "<span>Source on GitHub</span>";
+    sc.appendChild(src);
+
+    side.appendChild(sc);
+    gridEl.appendChild(side);
+    page.appendChild(gridEl);
   }
 
-  function render() {
-    var items = filtered();
-    var pages = Math.max(1, Math.ceil(items.length / PER_PAGE));
-    if (state.page > pages) state.page = pages;
-
-    countEl.textContent = items.length + (items.length === 1 ? " theme" : " themes");
-
-    grid.innerHTML = "";
-    if (items.length === 0) {
-      grid.appendChild(el("p", "empty", "No themes match your search."));
-      pager.innerHTML = "";
-      return;
-    }
-
-    var start = (state.page - 1) * PER_PAGE;
-    items.slice(start, start + PER_PAGE).forEach(function (t) {
-      grid.appendChild(card(t));
-    });
-    renderPagination(items.length);
+  function dedupe(arr) {
+    var out = [];
+    arr.forEach(function (v) { if (out.indexOf(v) === -1) out.push(v); });
+    return out;
   }
 
-  /* --- Trust modal ------------------------------------------------------ */
   var backdrop = document.getElementById("modal-backdrop");
   var modalTheme = document.getElementById("modal-theme");
   var modalConfirm = document.getElementById("modal-confirm");
   var modalCancel = document.getElementById("modal-cancel");
   var pending = null;
 
-  function openModal(t) {
-    pending = t;
-    modalTheme.textContent = t.name + " · " + t.file;
+  function openDownload(themeName, flavor) {
+    pending = flavor;
+    modalTheme.textContent = themeName + " · " + flavor.file;
     backdrop.classList.add("open");
     modalConfirm.focus();
   }
-  function closeModal() {
-    backdrop.classList.remove("open");
-    pending = null;
-  }
-  modalCancel.addEventListener("click", closeModal);
-  backdrop.addEventListener("click", function (e) {
-    if (e.target === backdrop) closeModal();
-  });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeModal();
-  });
-  modalConfirm.addEventListener("click", function () {
+  function closeModal() { backdrop.classList.remove("open"); pending = null; }
+  if (modalCancel) modalCancel.addEventListener("click", closeModal);
+  if (backdrop) backdrop.addEventListener("click", function (e) { if (e.target === backdrop) closeModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
+  if (modalConfirm) modalConfirm.addEventListener("click", function () {
     if (!pending) return;
     var a = document.createElement("a");
-    a.href = pending.download;
-    a.download = pending.file;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = pending.download; a.download = pending.file;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     closeModal();
   });
 
-  if (search) {
-    search.addEventListener("input", function () {
-      state.query = search.value;
-      state.page = 1;
-      render();
-    });
-  }
-
-  render();
+  if (document.getElementById("grid") && window.__THEMES__) runGallery(window.__THEMES__);
+  if (document.getElementById("theme-page") && window.__THEME__) runDetail(window.__THEME__);
 })();

@@ -10,5 +10,5 @@
 | Preview | Theme | Author | Base | Version | Made for | License |
 | --- | --- | --- | --- | --- | --- | --- |
 | <a href="themes/amber-marigold/"><img src="themes/amber-marigold/preview.png" width="220" alt="Amber Marigold preview"></a> | [**Amber Marigold**](themes/amber-marigold/) | Arne K. | `light` | `1.0.0` | `1.0.8`+ | `MIT` |
-| <a href="themes/catppuccin/"><img src="themes/catppuccin/preview.png" width="220" alt="Catppuccin Frappé preview"></a> | [**Catppuccin Frappé**](themes/catppuccin/) (4 flavors) | Catppuccin (ported by Arne K.) | `dark` | `1.0.8` | `1.0.8`+ | `MIT` |
-| — | [**Theme1**](themes/marigold/) |  | `dark` | `` | — | `` |
+| <a href="themes/catppuccin/"><img src="themes/catppuccin/preview.png" width="220" alt="Catppuccin preview"></a> | [**Catppuccin**](themes/catppuccin/) (4 flavors) | Catppuccin (ported by Arne K.) | `dark`, `light` | `1.0.8` | `1.0.8`+ | `MIT` |
+| — | [**Theme1**](themes/marigold/) | — | `dark` | varies | — | — |

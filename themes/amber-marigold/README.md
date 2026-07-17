@@ -1,6 +1,6 @@
 <!-- PELTON-META:START (generated from manifest.json by CI — do not edit inside this block) -->
 > [!NOTE]
-> This section is generated automatically from the theme's `.peltontheme` manifest. Do not edit it by hand — change the theme and let CI re-render it.
+> This section is generated automatically from the theme's `.peltontheme` manifest. Do not edit it by hand, change the theme and let CI re-render it.
 
 # Amber Marigold
 

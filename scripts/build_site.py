@@ -23,6 +23,9 @@ import sys
 import zipfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from themelib import read_manifest, theme_meta
+
 REPO = "https://github.com/TRC-Loop/pelton-themes"
 FOLDER_BASE = f"{REPO}/tree/main/themes"
 CUSTOM_DOMAIN = "themes.pelton.app"
@@ -32,7 +35,7 @@ THEMES_DIR = Path("themes")
 
 PREVIEW_EXTS = (".png", ".webp", ".jpg", ".jpeg", ".gif", ".avif", ".svg")
 
-# Tokens that are typography rather than colour.
+
 FONT_TOKENS = {"font-ui", "font-mono"}
 TYPE_TOKENS = {
     "fz-meta", "fz-label", "fz-list", "fz-body", "fz-heading", "fz-title",
@@ -44,36 +47,37 @@ NON_COLOUR = FONT_TOKENS | TYPE_TOKENS | RADIUS_TOKENS
 REMOTE_MARKERS = ("@import", "url(http", "url( http", 'url("http', "url('http", "url(//", 'url("//', "url('//")
 
 
-def read_manifest(pack: Path) -> dict | None:
+def extract_pack_preview(pack: Path, manifest: dict, dest_dir: Path) -> tuple[str, str] | None:
+    """Extract a pack's bundled preview into dest_dir.
+
+    Returns (site_filename, content_hash) or None. The filename is derived from
+    the pack name so each flavor's preview stays distinct.
+    """
+    preview = manifest.get("preview")
+    if not preview:
+        return None
+    ext = Path(preview).suffix.lower()
+    if ext not in PREVIEW_EXTS:
+        return None
     try:
         with zipfile.ZipFile(pack) as zf:
-            if "manifest.json" not in zf.namelist():
+            if preview not in zf.namelist():
                 return None
-            return json.loads(zf.read("manifest.json"))
-    except (zipfile.BadZipFile, json.JSONDecodeError):
+            data = zf.read(preview)
+    except zipfile.BadZipFile:
         return None
+    out_name = pack.stem + ext
+    (dest_dir / out_name).write_bytes(data)
+    return out_name, hashlib.sha1(data).hexdigest()
 
 
-def extract_preview(pack: Path, manifest: dict, dest_dir: Path) -> str | None:
-    """Copy the theme's preview image into dest_dir, return its filename."""
-    preview = manifest.get("preview")
-    if preview:
-        try:
-            with zipfile.ZipFile(pack) as zf:
-                if preview in zf.namelist():
-                    out_name = "preview" + Path(preview).suffix.lower()
-                    (dest_dir / out_name).write_bytes(zf.read(preview))
-                    return out_name
-        except zipfile.BadZipFile:
-            pass
-    # Fall back to a preview.* file sitting next to the theme in its folder.
-    folder = pack.parent
+def folder_preview(folder: Path, dest_dir: Path) -> str | None:
+    """Copy a folder-level preview.* into dest_dir, return its filename."""
     for ext in PREVIEW_EXTS:
         cand = folder / ("preview" + ext)
         if cand.exists():
-            out_name = "preview" + ext
-            shutil.copy2(cand, dest_dir / out_name)
-            return out_name
+            shutil.copy2(cand, dest_dir / ("preview" + ext))
+            return "preview" + ext
     return None
 
 
@@ -119,35 +123,70 @@ def collect_theme(folder: Path, out: Path) -> dict | None:
     packs = sorted(folder.glob("*.peltontheme"))
     if not packs:
         return None
-    pack = packs[0]
-    manifest = read_manifest(pack)
-    if manifest is None:
+    meta = theme_meta(folder, packs)
+    if not meta["flavors"]:
         return None
 
     slug = folder.name
     asset_dir = out / "themes" / slug
     asset_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy the downloadable file into the site (same-origin download).
-    shutil.copy2(pack, asset_dir / pack.name)
-    preview_name = extract_preview(pack, manifest, asset_dir)
+    previews: list[str] = []
+    seen_previews: set[str] = set()
+    flavors: list[dict] = []
+    caps = {"colours": False, "fonts": False, "icons": False, "css": False, "external": False}
 
-    pel = manifest.get("pelton", {}) or {}
+    for pack in packs:
+        manifest = read_manifest(pack)
+        if manifest is None:
+            continue
+
+        shutil.copy2(pack, asset_dir / pack.name)
+
+        result = extract_pack_preview(pack, manifest, asset_dir)
+        if result:
+            name, digest = result
+            if digest not in seen_previews:
+                seen_previews.add(digest)
+                previews.append(f"themes/{slug}/{name}")
+
+        c = detect_capabilities(pack, manifest)
+        for k in caps:
+            caps[k] = caps[k] or c[k]
+
+        pel = manifest.get("pelton", {}) or {}
+        flavors.append({
+            "name": manifest.get("name", pack.stem),
+            "base": manifest.get("base", "dark"),
+            "version": manifest.get("version", ""),
+            "peltonMin": pel.get("min", ""),
+            "file": pack.name,
+            "download": f"themes/{slug}/{pack.name}",
+        })
+
+
+    if not previews:
+        fp = folder_preview(folder, asset_dir)
+        if fp:
+            previews.append(f"themes/{slug}/{fp}")
+
     return {
         "slug": slug,
-        "name": manifest.get("name", slug),
-        "author": manifest.get("author", ""),
-        "description": manifest.get("description", ""),
-        "base": manifest.get("base", "dark"),
-        "version": manifest.get("version", ""),
-        "peltonMin": pel.get("min", ""),
-        "peltonMax": pel.get("max", ""),
-        "license": manifest.get("license", ""),
-        "file": pack.name,
-        "download": f"themes/{slug}/{pack.name}",
-        "preview": f"themes/{slug}/{preview_name}" if preview_name else None,
+        "name": meta["name"],
+        "author": meta["author"],
+        "authors": meta["authors"],
+        "description": meta["description"],
+        "bases": meta["bases"],
+        "version": meta["version"],
+        "peltonMin": meta["peltonMin"],
+        "license": meta["license"],
+        "licenses": meta["licenses"],
+        "multi": meta["multi"],
+        "flavors": flavors,
+        "previews": previews,
         "folder": f"{FOLDER_BASE}/{slug}",
-        "caps": detect_capabilities(pack, manifest),
+        "caps": caps,
+        "url": f"{slug}.html",
     }
 
 
@@ -172,13 +211,27 @@ def asset_hash() -> str:
     return h.hexdigest()[:10]
 
 
-def render_html(themes: list[dict]) -> str:
-    data = json.dumps(themes, ensure_ascii=False)
+def render_gallery(themes: list[dict]) -> str:
     count = len(themes)
     plural = "theme" if count == 1 else "themes"
+    data = f"window.__THEMES__ = {json.dumps(themes, ensure_ascii=False)};"
     return (
-        TEMPLATE.replace("__THEMES_JSON__", data)
-        .replace("__COUNT__", f"{count} {plural}")
+        SHELL.replace("__TITLE__", "Pelton Themes")
+        .replace("__DESC__", "Community theme gallery for Pelton, the privacy-first email client. Browse, preview and download .peltontheme files.")
+        .replace("__BODY__", GALLERY_BODY.replace("__COUNT__", f"{count} {plural}"))
+        .replace("__DATA__", data)
+        .replace("__V__", asset_hash())
+    )
+
+
+def render_detail(theme: dict) -> str:
+    data = f"window.__THEME__ = {json.dumps(theme, ensure_ascii=False)};"
+    desc = theme.get("description") or f"{theme['name']}, a theme for Pelton."
+    return (
+        SHELL.replace("__TITLE__", f"{theme['name']} · Pelton Themes")
+        .replace("__DESC__", desc.replace('"', "'"))
+        .replace("__BODY__", DETAIL_BODY)
+        .replace("__DATA__", data)
         .replace("__V__", asset_hash())
     )
 
@@ -189,29 +242,31 @@ def build(out_dir: str) -> None:
         shutil.rmtree(out)
     out.mkdir(parents=True)
 
-    # Static assets (self-hosted: no external requests at runtime).
+
     shutil.copytree(WEB / "fonts", out / "fonts")
     shutil.copytree(WEB / "img", out / "img")
     shutil.copy2(WEB / "style.css", out / "style.css")
     shutil.copy2(WEB / "app.js", out / "app.js")
 
     themes = collect_all(out)
-    (out / "index.html").write_text(render_html(themes), encoding="utf-8")
-    # Tell Pages not to run Jekyll over our files.
+    (out / "index.html").write_text(render_gallery(themes), encoding="utf-8")
+    for theme in themes:
+        (out / f"{theme['slug']}.html").write_text(render_detail(theme), encoding="utf-8")
+
     (out / ".nojekyll").write_text("", encoding="utf-8")
-    # Custom domain for GitHub Pages.
+
     (out / "CNAME").write_text(CUSTOM_DOMAIN + "\n", encoding="utf-8")
 
-    print(f"Built {len(themes)} theme(s) into {out}/")
+    print(f"Built {len(themes)} theme page(s) into {out}/")
 
 
-TEMPLATE = """<!doctype html>
+SHELL = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pelton Themes</title>
-<meta name="description" content="Community theme gallery for Pelton, the privacy-first email client. Browse, preview and download .peltontheme files.">
+<title>__TITLE__</title>
+<meta name="description" content="__DESC__">
 <link rel="icon" type="image/webp" href="./img/pelton-logo.webp">
 <link rel="stylesheet" href="./style.css?v=__V__">
 </head>
@@ -219,7 +274,7 @@ TEMPLATE = """<!doctype html>
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="https://pelton.app">
+    <a class="brand" href="./">
       <img src="./img/pelton-logo.webp" alt="" width="26" height="26">
       <span>Pelton Themes</span>
     </a>
@@ -231,24 +286,7 @@ TEMPLATE = """<!doctype html>
   </div>
 </header>
 
-<main class="wrap">
-  <section class="hero">
-    <h1>Pelton Themes</h1>
-    <p class="tagline">Community themes for <a href="https://pelton.app">Pelton</a>. Preview, download, import.</p>
-    <div class="cta">
-      <a class="btn btn-primary" href="https://github.com/TRC-Loop/pelton-themes/issues/new?template=submit_theme.yml">Submit a theme</a>
-      <a class="btn btn-ghost" href="https://github.com/TRC-Loop/pelton-themes/blob/main/CONTRIBUTING.md">How it works</a>
-    </div>
-  </section>
-
-  <div class="toolbar">
-    <input type="search" id="search" placeholder="Search themes by name, author or description…" aria-label="Search themes">
-    <span class="count" id="count">__COUNT__</span>
-  </div>
-
-  <div class="grid" id="grid"></div>
-  <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
-</main>
+__BODY__
 
 <footer class="site-footer">
   <div class="wrap">
@@ -292,11 +330,33 @@ TEMPLATE = """<!doctype html>
   </div>
 </div>
 
-<script>window.__THEMES__ = __THEMES_JSON__;</script>
+<script>__DATA__</script>
 <script src="./app.js?v=__V__"></script>
 </body>
 </html>
 """
+
+GALLERY_BODY = """<main class="wrap">
+  <section class="hero">
+    <h1>Pelton Themes</h1>
+    <p class="tagline">Community themes for <a href="https://pelton.app">Pelton</a>. Preview, download, import.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/TRC-Loop/pelton-themes/issues/new?template=submit_theme.yml">Submit a theme</a>
+      <a class="btn btn-ghost" href="https://github.com/TRC-Loop/pelton-themes/blob/main/CONTRIBUTING.md">How it works</a>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Search themes by name, author or description…" aria-label="Search themes">
+    <span class="count" id="count">__COUNT__</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
+</main>"""
+
+
+DETAIL_BODY = """<main class="wrap theme-detail" id="theme-page"></main>"""
 
 
 def main(argv: list[str]) -> int:

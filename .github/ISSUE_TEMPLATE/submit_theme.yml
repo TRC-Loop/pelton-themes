@@ -28,16 +28,6 @@ body:
       placeholder: e.g. Arne K. (https://github.com/...)
     validations:
       required: true
-  - type: dropdown
-    id: base
-    attributes:
-      label: Base
-      description: Which built-in look fills anything the theme does not override.
-      options:
-        - dark
-        - light
-    validations:
-      required: true
   - type: input
     id: made_for
     attributes:

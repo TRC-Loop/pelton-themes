@@ -22,6 +22,7 @@ No third-party dependencies: standard library only.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import urllib.request
@@ -62,7 +63,7 @@ def slugify(name: str) -> str:
 
 
 def all_zip_urls(text: str) -> list[str]:
-    # Markdown links or bare URLs pointing at .zip files, in order, deduped.
+
     urls: list[str] = []
     for m in re.finditer(r"https?://[^\s)\]]+", text):
         url = m.group(0)
@@ -113,7 +114,15 @@ def main() -> int:
     folder = Path("themes") / slug
     folder.mkdir(parents=True, exist_ok=True)
 
-    # Download every attached .zip (a theme can ship several flavors).
+
+    theme_json = {"name": name}
+    if description:
+        theme_json["description"] = description
+    (folder / "theme.json").write_text(
+        json.dumps(theme_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+
     used: set[str] = set()
     for i, url in enumerate(urls):
         zip_name = re.sub(r"[^A-Za-z0-9._-]", "-", Path(url.split("?")[0]).name)
@@ -124,7 +133,7 @@ def main() -> int:
         used.add(zip_name)
         try:
             download(url, folder / zip_name)
-        except Exception as exc:  # noqa: BLE001 - report any download failure
+        except Exception as exc:
             emit(ok="false", reason=f"Failed to download {zip_name}: {exc}")
             return 0
 
